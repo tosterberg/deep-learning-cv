@@ -1,3 +1,4 @@
+import collections
 import os
 from PIL import Image
 
@@ -5,28 +6,54 @@ from PIL import Image
 def describe_data():
     train_path = "./data/train"
     test_path = "./data/valid"
-    training_files, img_h, img_w = get_file_count(train_path)
-    print(f'Train Count: {training_files}, Minimum Dimensions: {img_h} x {img_w}')  # 69h X 130w
-    test_files, img_h, img_w = get_file_count(test_path)
-    print(f'Test Count: {test_files}, Minimum Dimensions: {img_h} x {img_w}')  # 100h X 150w
+    img_shapes = []
+    training_files = get_file_count(train_path, img_shapes)
+    print(f'Train Count: {training_files}')  # 69h X 130w
+    test_files = get_file_count(test_path, img_shapes)
+    print(f'Test Count: {test_files}')  # 100h X 150w
+
+    test_x, test_y = img_shapes[0]
+    print(f'{test_x}x{test_y}')
+    x_avg, x_min, x_max = 0, 10000, 0
+    y_avg, y_min, y_max = 0, 10000, 0
+
+    x_s = []
+    y_s = []
+
+    for x, y in img_shapes:
+        x_s.append(x)
+        x_avg += x
+        x_min = min(x_min, x)
+        x_max = max(x_max, x)
+        y_s.append(y)
+        y_avg += y
+        y_min = min(y_min, y)
+        y_max = max(y_max, y)
+
+    x_mode = collections.Counter(x_s).most_common()[0][0]
+    y_mode = collections.Counter(y_s).most_common()[0][0]
+
+    x_avg = x_avg // len(img_shapes)
+    y_avg = y_avg // len(img_shapes)
+
+    print(f'Avg: {x_avg}x{y_avg}')
+    print(f'Mode: {x_mode}x{y_mode}')
+    print(f'Min: {x_min}x{y_min}')
+    print(f'Max: {x_max}x{y_max}')
 
 
-def get_file_count(directory):
+def get_file_count(directory, shapes):
     count = 0
-    min_width, min_height = 10000, 10000
-    w, h = None, None
     for path in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, path)):
             im = Image.open(os.path.join(directory, path))
-            w, h = im.size
+            shapes.append(im.size)
             count += 1
         if os.path.isdir(os.path.join(directory, path)):
-            add, h, w = get_file_count(os.path.join(directory, path))
+            add = get_file_count(os.path.join(directory, path), shapes)
             count += add
-        min_width = min(min_width, w)
-        min_height = min(min_height, h)
     print(f'File count for {directory}:', count)
-    return count, min_width, min_height
+    return count
 
 
 def rearrange_data():
